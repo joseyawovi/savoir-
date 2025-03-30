@@ -218,14 +218,6 @@ EMAIL_HOST_PASSWORD = 'hfqnovljglydjjej'
 
 # Cloudinary Django Integration
 
-# cloudinary.config (
-#     cloud_name = 'dw7whhgws',
-#     api_key = '277146194325425',
-#     api_secret = 'Z4Y0f8yvo7lRkK2Is1yaOLcJJeo',
-# )
-
-# import cloudinary;
-
 cloudinary.config(
   cloud_name = os.getenv('CLOUD_NAME'),
   api_key = os.getenv('API_KEY'),
