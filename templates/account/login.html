@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 {% load i18n %}
-{% load account socialaccount %}
+{% comment %} {% load account socialaccount %} {% endcomment %}
 
 
 {% block title %}Sign In{% endblock %}
@@ -17,16 +17,16 @@
         </div>
         <div>
       <h1>Sign in to continue</h1>
-      {% get_providers as socialaccount_providers %}
+      {% comment %} {% get_providers as socialaccount_providers %}
       {% if socialaccount_providers %}
-        {% comment %} <p>{% blocktrans with site.name as site_name %}Please sign in with one
+        <p>{% blocktrans with site.name as site_name %}Please sign in with one
         of your existing third party accounts. Or, <a href="{{ signup_url }}">sign up</a>
-        for a {{ site_name }} account and sign in below:{% endblocktrans %}</p> {% endcomment %}
+        for a {{ site_name }} account and sign in below:{% endblocktrans %}</p> 
         {% include "socialaccount/snippets/login_extra.html" %}
       {% else %}
         <p>{% blocktrans %}If you have not created an account yet, then please
         <a href="{{ signup_url }}">sign up</a> first.{% endblocktrans %}</p>
-      {% endif %}
+      {% endif %} {% endcomment %}
       <form class="login" method="POST" action="{% url 'account_login' %}">
         {% csrf_token %}
         {{ form.as_p }}
@@ -39,7 +39,7 @@
       {% comment %} <div class="socialaccount_ballot">
         <ul class="socialaccount_providers"> {% endcomment %}
           {% comment %} {% include "socialaccount/snippets/provider_list.html" with process="login" %} {% endcomment %}
-          <a class="login-via-btn" href="{% provider_login_url 'google' %}">Login via Google</a>
+          {% comment %} <a class="login-via-btn" href="{% provider_login_url 'google' %}">Login via Google</a> {% endcomment %}
         {% comment %} </ul> {% endcomment %}
         {% comment %} <div class="login-or">{% trans 'or' %}</div> {% endcomment %}
       {% comment %} </div> {% endcomment %}
