@@ -156,7 +156,7 @@
         </div>
       </div>
       {% if enrolled %}
-      <a class='btn' href="#start-learning" style='display: block; text-align: center; width: 100%'>Access Course</a>
+      <a class='btn' href="{% url 'lesson_detail' slug=course.slug %}" style='display: block; text-align: center; width: 100%'>Access Course</a>
       {% else %}
       {% if user.is_authenticated %}
       <form method="post" action="{% url 'course_details' instructor=course.instructor.username slug=course.slug %}">

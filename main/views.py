@@ -232,3 +232,11 @@ def category(request, category):
         'courses': courses
     }
     return render(request, 'category.html', context)
+
+
+def lesson_details(request,slug):
+    course = get_object_or_404(Course, slug=slug)
+    context = {
+        "course":course,
+    }
+    return render(request, 'lesson_detail.html',context)
