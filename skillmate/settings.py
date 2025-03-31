@@ -69,8 +69,6 @@ INSTALLED_APPS = [
     # 'allauth.socialaccount.providers.google',
 
     'cloudinary',
-    'cloudinary_storage',
-
     'main',
 ]
 
@@ -197,7 +195,6 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-DEFAULT_FROM_EMAIL = 'dev.ash.py@gmail.com'
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
@@ -208,9 +205,17 @@ EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 # Cloudinary Django Integration
-
-cloudinary.config(
-  cloud_name = os.getenv('CLOUD_NAME'),
-  api_key = os.getenv('API_KEY'),
-  api_secret = os.getenv('API_SECRET')
-)
+# Cloudinary Django Integration
+try:
+    cloudinary.config(
+        cloud_name=os.getenv('CLOUD_NAME'),
+        api_key=os.getenv('API_KEY'),
+        api_secret=os.getenv('API_SECRET'),
+        secure=True
+    )
+    # Verify configuration
+    if not all([cloudinary.config().cloud_name, cloudinary.config().api_key, cloudinary.config().api_secret]):
+        raise ValueError("Incomplete Cloudinary configuration")
+except Exception as e:
+    print(f"Error configuring Cloudinary: {e}")
+    raise
