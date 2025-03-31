@@ -3,7 +3,6 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
 load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -70,6 +69,7 @@ INSTALLED_APPS = [
     # 'allauth.socialaccount.providers.google',
 
     'cloudinary',
+    'cloudinary_storage',
 
     'main',
 ]
