@@ -5,7 +5,24 @@
 {% block content %}
 
 <sectiion class='dashboard'>
-
+  {% if messages %}
+  <div class="my-4">
+    <ul>
+      {% for message in messages %}
+        <li 
+          class="px-4 py-2 mb-2 rounded text-white 
+          {% if message.tags == 'success' %}bg-green-500
+          {% elif message.tags == 'error' %}bg-red-500
+          {% elif message.tags == 'warning' %}bg-yellow-500 text-black
+          {% elif message.tags == 'info' %}bg-blue-500
+          {% else %}bg-gray-500{% endif %}"
+        >
+          <strong></strong> {{ message }}
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+{% endif %}
   <h1>Upload a new course</h1>
 
   <form class='course-form' method="POST" enctype="multipart/form-data">
@@ -51,12 +68,12 @@
       <label for="featured_video">Course Featured Video</label>
       <input type="file" class="form-control-file" id="featured_video" name="featured_video" accept="video/*" required>
     </div>
-    <div>
+    {% comment %} <div>
       <label for="lesson_title">Lesson Title</label>
       <input style='margin-bottom: 1rem' type="text" class="form-control" id="lesson_title" name="lesson_title" required>
       <label for="lesson_video">Lesson Video</label>
       <input type="file" class="form-control-file" id="lesson_title" name="lesson_video" accept="video/*" required>
-    </div>
+    </div> {% endcomment %}
     <div style='display: flex; gap: 1rem; justify-content: space-between;'>
       <div>
         <label for="price">Price in USD</label>

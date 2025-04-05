@@ -1,0 +1,50 @@
+{% extends 'dashboard-base.html' %}
+
+{% block title %}Dashboard{% endblock title %}
+
+{% block content %}
+
+<sectiion class='dashboard'>
+  {% if messages %}
+  <div class="my-4">
+    <ul>
+      {% for message in messages %}
+        <li 
+          class="px-4 py-2 mb-2 rounded text-white 
+          {% if message.tags == 'success' %}bg-green-500
+          {% elif message.tags == 'error' %}bg-red-500
+          {% elif message.tags == 'warning' %}bg-yellow-500 text-black
+          {% elif message.tags == 'info' %}bg-blue-500
+          {% else %}bg-gray-500{% endif %}"
+        >
+          <strong>{{ message }}</strong> 
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+{% endif %}
+  <h1>Upload a new Module</h1>
+
+  <form class='course-form' method="POST">
+  <h2>Module details</h2>
+    {% csrf_token %}
+    <div class="">
+        <label for="course">Course</label>
+        <select id="course" name="course" class="form-control" required>
+          <option value="">-- Select a course --</option>
+          {% for course in courses %}
+            <option value="{{ course.id }}">{{ course.title }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      
+    <div class="">
+      <label for="title">title</label>
+      <input type="text" class="form-control" id="title" name="title" required>
+    </div>
+    <button style='width: 100%' type="submit" class="upload-course">Upload Course</button>   
+  </form>
+
+</section>
+
+{% endblock content %}

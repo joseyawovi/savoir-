@@ -1,0 +1,87 @@
+{% extends 'dashboard-base.html' %}
+
+{% block title %}Dashboard{% endblock title %}
+
+{% block content %}
+
+<sectiion class='dashboard'>
+  {% if messages %}
+  <div class="my-4">
+    <ul>
+      {% for message in messages %}
+        <li 
+          class="px-4 py-2 mb-2 rounded text-white 
+          {% if message.tags == 'success' %}bg-green-500
+          {% elif message.tags == 'error' %}bg-red-500
+          {% elif message.tags == 'warning' %}bg-yellow-500 text-black
+          {% elif message.tags == 'info' %}bg-blue-500
+          {% else %}bg-gray-500{% endif %}"
+        >
+          <strong></strong> {{ message }}
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+{% endif %}
+  <h1>Upload a new lesson_1</h1>
+
+  <form class='course-form' method="POST" enctype="multipart/form-data">
+  <h2>Lesson details</h2>
+    {% csrf_token %}
+    <div class="">
+      <label for="title">module</label>
+      <input type="text" class="form-control" id="title" name="title" required>
+    </div>
+    <div class="">
+      <label for="description">Course Description</label>
+      <textarea class="form-control" id="description" name="description" required></textarea>
+    </div>
+    <div>
+      <label for="requirements">Course Requirements</label>
+      <textarea class="form-control" id="requirements" name="requirements" required></textarea>
+    </div>
+    <div>
+      <label for="content">Course Content</label>
+      <textarea class="form-control" id="content" name="content" required></textarea>
+    </div>
+    <div>
+      <label for="category">Course Category</label>
+      <input type="text" class="form-control" id="category" name="category" required>
+    </div>
+    <div class="">
+      <label for="level">Course Level</label>
+      <select id="level" name="level">
+        <option value="Beginner">Beginner</option>
+        <option value="Intermediate">Intermediate</option>
+        <option value="Advanced">Advanced</option>
+      </select>      
+    </div>
+    <div class="">
+      <label for="duration">Course Duration</label>
+      <input type="text" class="form-control" id="duration" name="duration" required>
+    </div>
+    <div class="">
+      <label for="thumbnail">Course Thumbnail</label>
+      <input type="file" class="form-control-file" id="thumbnail" name="thumbnail" accept="image/*" required>
+    </div>
+    <div class="">
+      <label for="featured_video">Course Featured Video</label>
+      <input type="file" class="form-control-file" id="featured_video" name="featured_video" accept="video/*" required>
+    </div>
+    <div style='display: flex; gap: 1rem; justify-content: space-between;'>
+      <div>
+        <label for="price">Price in USD</label>
+        <input type="text" class="form-control" id="price" name="price" required>
+      </div>
+      <div>
+        <label for="discount">Discount</label>
+        <input type="text" class="form-control" id="discount" name="discount" required>
+      </div>
+    </div>
+      <button style='width: 100%' type="submit" class="upload-course">Upload Course</button>
+
+  </form>
+
+</section>
+
+{% endblock content %}

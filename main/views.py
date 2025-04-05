@@ -5,7 +5,7 @@ import cloudinary.api
 from django.shortcuts import render, redirect
 
 from django.utils.text import slugify
-from .models import Course, Enrollment
+from .models import Course, Enrollment, Module
 
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User
@@ -112,6 +112,11 @@ def courses_uploaded(request):
     courses = Course.objects.filter(instructor=request.user)
     return render(request, 'dashboard/courses-uploaded.html', {'courses': courses})
 
+def modules_uploaded(request):
+    modules = Module.objects.filter(instructor=request.user)
+    print(modules)
+    return render(request, 'dashboard/modules_uploaded.html', {'modules': modules})
+
 @login_required
 def upload(request):
     if request.method == 'POST':
@@ -119,12 +124,19 @@ def upload(request):
             # Get form data
             title = request.POST.get('title')
             description = request.POST.get('description')
+            requirements = request.POST.get('requirements')
+            content = request.POST.get('content')
+            category = request.POST.get('category')
+            level = request.POST.get('level')
+            duration = request.POST.get('duration')
+            price = request.POST.get('price')
+            discount = request.POST.get('discount')
             thumbnail = request.FILES.get('thumbnail')
             featured_video = request.FILES.get('featured_video')
-            lesson_video = request.FILES.get('lesson_video')
+            # lesson_video = request.FILES.get('lesson_video')
             
             # Validate required files
-            if not all([thumbnail, featured_video, lesson_video]):
+            if not all([thumbnail, featured_video]):
                 messages.error(request, "All file fields are required")
                 return redirect('upload')
             
@@ -134,20 +146,21 @@ def upload(request):
                 featured_video, 
                 resource_type="video"
             )
-            lesson_video_upload = cloudinary.uploader.upload(
-                lesson_video,
-                resource_type="video"
-            )
-            
-            # Create course (simplified example)
             course = Course(
                 title=title,
                 description=description,
+                requirements = requirements,
+                content = content,
                 thumbnail=thumbnail_upload['secure_url'],
                 featured_video=featured_video_upload['secure_url'],
                 instructor=request.user,
-                lesson_video=lesson_video_upload['secure_url'],
+                # lesson_video=lesson_video_upload['secure_url'],
                 # Add other fields as needed
+                category = category,
+                level = level,
+                duration = duration,
+                price = price,
+                discount = discount
             )
             course.save()
             
@@ -161,6 +174,25 @@ def upload(request):
         
     return render(request, 'dashboard/upload.html')
 
+@login_required
+def upload_module(request):
+    if request.method == 'POST':
+        try:
+            course_id = request.POST.get('course')
+            title = request.POST.get('title')
+            # Option A: use course_id if your model is set up for it
+            instructor=request.user
+            module = Module(title=title, course_id=course_id,)
+            module.save()
+            
+            messages.success(request, "Module uploaded successfully!")
+            return redirect('upload_module')
+        except Exception as e:
+            messages.error(request, f"An error occurred: {e}")
+
+    courses = Course.objects.all()
+    return render(request, 'dashboard/upload_module.html', {'courses': courses})
+
 # def course_details(request, instructor, slug):
 #     instructor_obj = get_object_or_404(User, username=instructor)
 #     course = get_object_or_404(Course, slug=slug, instructor=instructor_obj)
@@ -170,6 +202,89 @@ def upload(request):
 #     return render(request, 'course.html', context)
 
 def course_details(request, instructor, slug):
+    instructor_obj = get_object_or_404(User, username=instructor)
+    course = get_object_or_404(Course, slug=slug, instructor=instructor_obj)
+    category_courses = Course.objects.filter(category__iexact=course.category).exclude(id=course.id)[:3]
+
+    enrolled = False
+    
+    if request.user.is_authenticated:
+        enrolled = course.students.filter(id=request.user.id).exists()
+
+    if request.method == 'POST' and not enrolled:
+        user = request.user
+        course.students.add(user)
+        enrollment = Enrollment(student=user, course=course)
+        enrollment.save()
+        messages.success(request, 'You have enrolled in this course!')
+        return redirect('course_details', instructor=instructor, slug=slug)
+
+    context = {
+        'course': course,
+        'enrolled': enrolled,
+        'category_courses': category_courses
+    }
+    return render(request, 'course.html', context)
+
+@login_required
+def upload(request):
+    if request.method == 'POST':
+        try:
+            # Get form data
+            title = request.POST.get('title')
+            description = request.POST.get('description')
+            requirements = request.POST.get('requirements')
+            content = request.POST.get('content')
+            category = request.POST.get('category')
+            level = request.POST.get('level')
+            duration = request.POST.get('duration')
+            price = request.POST.get('price')
+            discount = request.POST.get('discount')
+            thumbnail = request.FILES.get('thumbnail')
+            featured_video = request.FILES.get('featured_video')
+            # lesson_video = request.FILES.get('lesson_video')
+            
+            # Validate required files
+            if not all([thumbnail, featured_video]):
+                messages.error(request, "All file fields are required")
+                return redirect('upload')
+            
+            # Upload files to Cloudinary
+            thumbnail_upload = cloudinary.uploader.upload(thumbnail)
+            featured_video_upload = cloudinary.uploader.upload(
+                featured_video, 
+                resource_type="video"
+            )
+            course = Course(
+                title=title,
+                description=description,
+                requirements = requirements,
+                content = content,
+                thumbnail=thumbnail_upload['secure_url'],
+                featured_video=featured_video_upload['secure_url'],
+                instructor=request.user,
+                # lesson_video=lesson_video_upload['secure_url'],
+                # Add other fields as needed
+                category = category,
+                level = level,
+                duration = duration,
+                price = price,
+                discount = discount
+            )
+            course.save()
+            
+            messages.success(request, "Course uploaded successfully!")
+            return redirect('dashboard')  # Redirect to success page
+            
+        except cloudinary.exceptions.Error as e:
+            messages.error(request, f"Cloudinary upload failed: {e}")
+        except Exception as e:
+            messages.error(request, f"An error occurred: {e}")
+        
+    return render(request, 'dashboard/upload.html')
+
+
+def module_details(request, instructor, slug):
     instructor_obj = get_object_or_404(User, username=instructor)
     course = get_object_or_404(Course, slug=slug, instructor=instructor_obj)
     category_courses = Course.objects.filter(category__iexact=course.category).exclude(id=course.id)[:3]
