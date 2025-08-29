@@ -5,8 +5,29 @@
 {% block head_title %}{% trans "Verify Your E-mail Address" %}{% endblock %}
 
 {% block content %}
-    <h1>{% trans "Verify Your E-mail Address" %}</h1>
-
-    <p>{% blocktrans %}We have sent an e-mail to you for verification. Follow the link provided to finalize the signup process. If you do not see the verification e-mail in your main inbox, check your spam folder. Please contact us if you do not receive the verification e-mail within a few minutes.{% endblocktrans %}</p>
-
+<section class="signin">
+  <div class="container signin-content">
+    <div class="signin-container">
+      <div class="signin-grid">
+        <div style="display: flex; align-items: center; justify-content: center;">
+          <div style="text-align: center; padding: 2rem;">
+            <h1>{% trans "Check Your Email" %}</h1>
+            
+            <div style="margin: 2rem 0;">
+              <svg width="64" height="64" fill="#4CAF50" viewBox="0 0 24 24">
+                <path d="M20,8L12,13L4,8V6L12,11L20,6M20,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V6C22,4.89 21.1,4 20,4Z" />
+              </svg>
+            </div>
+            
+            <p style="margin: 1.5rem 0; font-size: 1.1rem;">{% blocktrans %}We've sent a verification email to your inbox. Please check your email and click the confirmation link to activate your Skillmate account.{% endblocktrans %}</p>
+            
+            <p style="margin: 1rem 0; color: #666;">{% blocktrans %}Didn't receive the email? Check your spam folder or contact our support team.{% endblocktrans %}</p>
+            
+            <a href="{% url 'account_login' %}" class="primaryAction" style="display: inline-block; margin-top: 1rem; padding: 0.8rem 2rem; text-decoration: none;">Return to Login</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 {% endblock %}
