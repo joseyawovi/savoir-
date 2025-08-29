@@ -1,0 +1,117 @@
+{% extends 'dashboard-base.html' %}
+{% load static %}
+
+{% block title %}{{ course.title }} - Curriculum{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-6xl mx-auto">
+        <!-- Course Header -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">{{ course.title }}</h1>
+                    <p class="text-gray-600 mt-2">Instructor: {{ course.instructor.first_name }} {{ course.instructor.last_name }}</p>
+                </div>
+                <div class="text-right">
+                    <div class="text-2xl font-bold text-green-600">{{ progress_percentage }}%</div>
+                    <div class="text-sm text-gray-500">Progress</div>
+                </div>
+            </div>
+            
+            <!-- Progress Bar -->
+            <div class="mt-4">
+                <div class="bg-gray-200 rounded-full h-3">
+                    <div class="bg-green-500 h-3 rounded-full transition-all duration-300" style="width: {{ progress_percentage }}%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Course Chapters and Lessons -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Curriculum Sidebar -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h2 class="text-xl font-bold mb-4">Course Curriculum</h2>
+                    
+                    {% for chapter in chapters %}
+                    <div class="mb-6">
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <h3 class="font-semibold text-gray-800">
+                                Chapter {{ chapter.order }}: {{ chapter.title }}
+                            </h3>
+                            <span class="text-sm text-gray-500">{{ chapter.get_lessons_count }} lessons</span>
+                        </div>
+                        
+                        <div class="mt-2 space-y-2">
+                            {% for lesson in chapter.lessons.all %}
+                            <div class="flex items-center p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                                {% if user_progress|get_item:lesson.id %}
+                                <div class="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center mr-3">
+                                    <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                </div>
+                                {% else %}
+                                <div class="w-5 h-5 rounded-full border-2 border-gray-300 mr-3"></div>
+                                {% endif %}
+                                
+                                <a href="{% url 'lesson_detail' course_slug=course.slug lesson_id=lesson.id %}" 
+                                   class="flex-1 text-sm text-gray-700 hover:text-blue-600">
+                                    {{ lesson.order }}. {{ lesson.title }}
+                                    {% if lesson.duration %}
+                                    <span class="text-xs text-gray-500">({{ lesson.duration }})</span>
+                                    {% endif %}
+                                </a>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Main Content Area -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h2 class="text-2xl font-bold mb-4">Get Started</h2>
+                    <p class="text-gray-600 mb-6">{{ course.description }}</p>
+                    
+                    {% if chapters %}
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-semibold">Course Overview</h3>
+                        {% for chapter in chapters %}
+                        <div class="border-l-4 border-blue-500 pl-4">
+                            <h4 class="font-semibold">{{ chapter.title }}</h4>
+                            {% if chapter.description %}
+                            <p class="text-sm text-gray-600">{{ chapter.description }}</p>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                        
+                        {% if chapters.0.lessons.all %}
+                        <div class="mt-6">
+                            <a href="{% url 'lesson_detail' course_slug=course.slug lesson_id=chapters.0.lessons.all.0.id %}" 
+                               class="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors">
+                                Start First Lesson
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-8">
+                        <div class="text-gray-400 text-lg">No content available yet</div>
+                        <p class="text-gray-500">The instructor is still preparing the course content.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Add a custom template filter for accessing dictionary values in JavaScript if needed
+const userProgress = {{ user_progress|safe }};
+</script>
+{% endblock %}

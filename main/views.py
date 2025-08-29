@@ -5,18 +5,16 @@ import cloudinary.api
 from django.shortcuts import render, redirect
 
 from django.utils.text import slugify
-from .models import Course, Enrollment
-
+from .models import Course, Enrollment, Chapter, Lesson, LessonProgress, Certificate
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User
-
 from django.contrib.auth.decorators import login_required
-
-from .forms import CourseEditForm
-
+from .forms import CourseEditForm, ChapterForm, LessonForm
 from django.contrib import messages
-
+from django.http import JsonResponse
+from django.utils import timezone
 import pytz
+import json
 
 # Create your views here.
 
@@ -121,11 +119,10 @@ def upload(request):
             description = request.POST.get('description')
             thumbnail = request.FILES.get('thumbnail')
             featured_video = request.FILES.get('featured_video')
-            lesson_video = request.FILES.get('lesson_video')
             
             # Validate required files
-            if not all([thumbnail, featured_video, lesson_video]):
-                messages.error(request, "All file fields are required")
+            if not all([thumbnail, featured_video]):
+                messages.error(request, "Thumbnail and featured video are required")
                 return redirect('upload')
             
             # Upload files to Cloudinary
@@ -134,20 +131,20 @@ def upload(request):
                 featured_video, 
                 resource_type="video"
             )
-            lesson_video_upload = cloudinary.uploader.upload(
-                lesson_video,
-                resource_type="video"
-            )
             
-            # Create course (simplified example)
+            # Create course
             course = Course(
                 title=title,
                 description=description,
                 thumbnail=thumbnail_upload['secure_url'],
                 featured_video=featured_video_upload['secure_url'],
                 instructor=request.user,
-                lesson_video=lesson_video_upload['secure_url'],
-                # Add other fields as needed
+                category=request.POST.get('category', 'uncategorized'),
+                level=request.POST.get('level', 'Beginner'),
+                requirements=request.POST.get('requirements', ''),
+                content=request.POST.get('content', ''),
+                price=request.POST.get('price', 0),
+                discount=request.POST.get('discount', 0),
             )
             course.save()
             
@@ -173,13 +170,22 @@ def course_details(request, instructor, slug):
     instructor_obj = get_object_or_404(User, username=instructor)
     course = get_object_or_404(Course, slug=slug, instructor=instructor_obj)
     category_courses = Course.objects.filter(category__iexact=course.category).exclude(id=course.id)[:3]
+    
+    # Get course chapters and lessons for preview
+    chapters = Chapter.objects.filter(course=course).prefetch_related('lessons')[:3]  # Show first 3 chapters as preview
+    total_lessons = course.get_total_lessons()
 
     enrolled = False
+    progress_percentage = 0
+    has_certificate = False
     
     if request.user.is_authenticated:
         enrolled = course.students.filter(id=request.user.id).exists()
+        if enrolled:
+            progress_percentage = course.get_progress_percentage(request.user)
+            has_certificate = Certificate.objects.filter(user=request.user, course=course).exists()
 
-    if request.method == 'POST' and not enrolled:
+    if request.method == 'POST' and not enrolled and request.user.is_authenticated:
         user = request.user
         course.students.add(user)
         enrollment = Enrollment(student=user, course=course)
@@ -190,7 +196,11 @@ def course_details(request, instructor, slug):
     context = {
         'course': course,
         'enrolled': enrolled,
-        'category_courses': category_courses
+        'category_courses': category_courses,
+        'chapters': chapters,
+        'total_lessons': total_lessons,
+        'progress_percentage': progress_percentage,
+        'has_certificate': has_certificate,
     }
     return render(request, 'course.html', context)
 
@@ -225,9 +235,116 @@ def category(request, category):
     return render(request, 'category.html', context)
 
 
-def lesson_details(request,slug):
-    course = get_object_or_404(Course, slug=slug)
+@login_required
+def lesson_detail(request, course_slug, lesson_id):
+    course = get_object_or_404(Course, slug=course_slug)
+    lesson = get_object_or_404(Lesson, id=lesson_id, chapter__course=course)
+    
+    # Check if user is enrolled in the course
+    if not course.students.filter(id=request.user.id).exists():
+        messages.error(request, 'You must be enrolled in this course to view lessons.')
+        return redirect('course_details', instructor=course.instructor.username, slug=course.slug)
+    
+    # Get or create lesson progress
+    progress, created = LessonProgress.objects.get_or_create(
+        user=request.user,
+        lesson=lesson,
+        defaults={'completed': False}
+    )
+    
+    # Get all lessons in the course for navigation
+    chapters = Chapter.objects.filter(course=course).prefetch_related('lessons')
+    
     context = {
-        "course":course,
+        'course': course,
+        'lesson': lesson,
+        'progress': progress,
+        'chapters': chapters,
+        'next_lesson': lesson.get_next_lesson(),
+        'previous_lesson': lesson.get_previous_lesson(),
     }
-    return render(request, 'lesson_detail.html',context)
+    return render(request, 'lesson_detail.html', context)
+
+@login_required
+def complete_lesson(request, lesson_id):
+    if request.method == 'POST':
+        lesson = get_object_or_404(Lesson, id=lesson_id)
+        
+        # Check if user is enrolled in the course
+        if not lesson.chapter.course.students.filter(id=request.user.id).exists():
+            return JsonResponse({'success': False, 'error': 'Not enrolled in course'})
+        
+        # Mark lesson as completed
+        progress, created = LessonProgress.objects.get_or_create(
+            user=request.user,
+            lesson=lesson,
+            defaults={'completed': True, 'completed_at': timezone.now()}
+        )
+        
+        if not progress.completed:
+            progress.completed = True
+            progress.completed_at = timezone.now()
+            progress.save()
+        
+        # Check if course is completed
+        course = lesson.chapter.course
+        if course.is_completed_by_user(request.user):
+            # Generate certificate if not already exists
+            certificate, cert_created = Certificate.objects.get_or_create(
+                user=request.user,
+                course=course
+            )
+            return JsonResponse({
+                'success': True, 
+                'course_completed': True,
+                'certificate_id': certificate.certificate_id
+            })
+        
+        return JsonResponse({'success': True, 'course_completed': False})
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+@login_required
+def course_curriculum(request, instructor, slug):
+    instructor_obj = get_object_or_404(User, username=instructor)
+    course = get_object_or_404(Course, slug=slug, instructor=instructor_obj)
+    
+    # Check if user is enrolled
+    if not course.students.filter(id=request.user.id).exists():
+        messages.error(request, 'You must be enrolled in this course to view the curriculum.')
+        return redirect('course_details', instructor=instructor, slug=slug)
+    
+    chapters = Chapter.objects.filter(course=course).prefetch_related('lessons')
+    
+    # Get user's progress
+    user_progress = {}
+    for chapter in chapters:
+        for lesson in chapter.lessons.all():
+            progress = LessonProgress.objects.filter(
+                user=request.user, lesson=lesson
+            ).first()
+            user_progress[lesson.id] = progress.completed if progress else False
+    
+    context = {
+        'course': course,
+        'chapters': chapters,
+        'user_progress': user_progress,
+        'progress_percentage': course.get_progress_percentage(request.user),
+    }
+    return render(request, 'course_curriculum.html', context)
+
+@login_required
+def certificate_view(request, certificate_id):
+    certificate = get_object_or_404(Certificate, certificate_id=certificate_id, user=request.user)
+    
+    context = {
+        'certificate': certificate,
+        'course': certificate.course,
+        'user': request.user,
+    }
+    return render(request, 'certificate.html', context)
+
+def lesson_details(request, slug):
+    # Redirect to course curriculum instead
+    course = get_object_or_404(Course, slug=slug)
+    return redirect('course_curriculum', instructor=course.instructor.username, slug=slug)

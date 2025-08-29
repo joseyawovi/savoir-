@@ -10,10 +10,14 @@ urlpatterns = [
     path('dashboard/profile/', views.profile, name='profile'),
     path('dashboard/courses-enrolled/', views.courses_enrolled, name='courses-enrolled'),
     path('dashboard/courses-uploaded/', views.courses_uploaded, name='courses-uploaded'),
-    path('dashboard/upload/', views.upload, name='uploade'),
+    path('dashboard/upload/', views.upload, name='upload'),
     path('dashboard/<slug:slug>/course-edit/', views.course_edit, name='course-edit'),
     path('dashboard/<slug:slug>/delete/', views.delete_course, name='delete-course'),
     path('<str:instructor>/course/<slug:slug>/', views.course_details, name='course_details'),
-    path('<slug:slug>/lesson', views.lesson_details, name='lesson_detail'),
+    path('<str:instructor>/course/<slug:slug>/curriculum/', views.course_curriculum, name='course_curriculum'),
+    path('lesson/<int:lesson_id>/complete/', views.complete_lesson, name='complete_lesson'),
+    path('course/<slug:course_slug>/lesson/<int:lesson_id>/', views.lesson_detail, name='lesson_detail'),
+    path('certificate/<str:certificate_id>/', views.certificate_view, name='certificate_view'),
+    path('<slug:slug>/lesson', views.lesson_details, name='lesson_detail_old'),  # Keep for backward compatibility
     path('courses/<str:category>/', views.category, name='category'),
 ]

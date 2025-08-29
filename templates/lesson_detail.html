@@ -1,21 +1,247 @@
-{% extends 'base.html' %}
+{% extends 'dashboard-base.html' %}
 {% load static %}
 
-{% block title %}{{ course.lesson_title }}{% endblock title %}
+{% block title %}{{ lesson.title }} - {{ course.title }}{% endblock %}
 
 {% block content %}
-<section class="lesson-detail">
-    <div class="container">
-       
-        <div class="video-container" style="display: flex; justify-content: center;">
-            <video controls style="max-width: 100%; border-radius: 8px;">
-                <source src="{{ course.lesson_video.url }}" type="{{ course.lesson_video.mime_type }}">
-                Your browser does not support the video tag.
-            </video>
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-6xl mx-auto">
+        <!-- Course Navigation Header -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">{{ lesson.title }}</h1>
+                    <p class="text-gray-600 mt-2">
+                        <a href="{% url 'course_curriculum' instructor=course.instructor.username slug=course.slug %}" 
+                           class="text-blue-600 hover:text-blue-800">{{ course.title }}</a>
+                        → {{ lesson.chapter.title }}
+                    </p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    {% if previous_lesson %}
+                    <a href="{% url 'lesson_detail' course_slug=course.slug lesson_id=previous_lesson.id %}" 
+                       class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors">
+                        ← Previous
+                    </a>
+                    {% endif %}
+                    
+                    {% if next_lesson %}
+                    <a href="{% url 'lesson_detail' course_slug=course.slug lesson_id=next_lesson.id %}" 
+                       class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        Next →
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
         </div>
-        <h1 style="font-size: 2rem; text-align: center; margin-bottom: 1rem;">
-            {{ course.title }}
-        </h1>
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            <!-- Video Player -->
+            <div class="lg:col-span-3">
+                <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+                    <!-- YouTube Video Embed -->
+                    {% if lesson.get_youtube_embed_id %}
+                    <div class="relative pb-9/16 h-0">
+                        <iframe 
+                            class="absolute top-0 left-0 w-full h-full"
+                            style="height: 500px;"
+                            src="https://www.youtube.com/embed/{{ lesson.get_youtube_embed_id }}?rel=0&showinfo=0&modestbranding=1"
+                            frameborder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowfullscreen>
+                        </iframe>
+                    </div>
+                    {% else %}
+                    <div class="bg-gray-100 h-64 flex items-center justify-center">
+                        <div class="text-center">
+                            <div class="text-gray-400 text-lg">Video not available</div>
+                            <p class="text-gray-500">Invalid YouTube URL</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Lesson Info -->
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <div>
+                                <h2 class="text-2xl font-bold">{{ lesson.title }}</h2>
+                                {% if lesson.duration %}
+                                <p class="text-gray-600">Duration: {{ lesson.duration }}</p>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Complete Lesson Button -->
+                            <div>
+                                {% if progress.completed %}
+                                <div class="flex items-center text-green-600">
+                                    <svg class="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    Completed
+                                </div>
+                                {% else %}
+                                <button id="complete-lesson-btn" 
+                                        class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors">
+                                    Mark as Complete
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        {% if lesson.description %}
+                        <div class="prose max-w-none">
+                            <p>{{ lesson.description|linebreaks }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Course Sidebar -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h3 class="text-lg font-bold mb-4">Course Progress</h3>
+                    
+                    <!-- Progress Bar -->
+                    <div class="mb-4">
+                        <div class="flex justify-between text-sm text-gray-600 mb-1">
+                            <span>Progress</span>
+                            <span id="progress-percentage">{{ course.get_progress_percentage:user }}%</span>
+                        </div>
+                        <div class="bg-gray-200 rounded-full h-2">
+                            <div id="progress-bar" class="bg-green-500 h-2 rounded-full transition-all duration-300" 
+                                 style="width: {{ course.get_progress_percentage:user }}%"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Chapter Navigation -->
+                    <div class="space-y-3">
+                        {% for chapter in chapters %}
+                        <div class="border rounded-lg p-3">
+                            <h4 class="font-semibold text-sm mb-2">{{ chapter.title }}</h4>
+                            <div class="space-y-1">
+                                {% for chapter_lesson in chapter.lessons.all %}
+                                <div class="flex items-center text-sm">
+                                    {% if chapter_lesson.is_completed_by_user:user %}
+                                    <div class="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center mr-2">
+                                        <svg class="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                        </svg>
+                                    </div>
+                                    {% else %}
+                                    <div class="w-4 h-4 rounded-full border-2 border-gray-300 mr-2"></div>
+                                    {% endif %}
+                                    
+                                    <a href="{% url 'lesson_detail' course_slug=course.slug lesson_id=chapter_lesson.id %}" 
+                                       class="{% if chapter_lesson.id == lesson.id %}text-blue-600 font-semibold{% else %}text-gray-600 hover:text-blue-600{% endif %}">
+                                        {{ chapter_lesson.title }}
+                                    </a>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-</section>
-{% endblock content %}
+</div>
+
+<!-- Certificate Modal -->
+<div id="certificate-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-8 max-w-md mx-4">
+        <div class="text-center">
+            <div class="text-6xl mb-4">🎉</div>
+            <h2 class="text-2xl font-bold mb-4">Congratulations!</h2>
+            <p class="text-gray-600 mb-6">You have successfully completed the course "{{ course.title }}"!</p>
+            <div class="space-y-3">
+                <button id="view-certificate-btn" class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors">
+                    View Certificate
+                </button>
+                <button id="close-modal-btn" class="w-full bg-gray-500 text-white py-3 rounded-lg hover:bg-gray-600 transition-colors">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const completeBtn = document.getElementById('complete-lesson-btn');
+    const modal = document.getElementById('certificate-modal');
+    const closeModalBtn = document.getElementById('close-modal-btn');
+    const viewCertBtn = document.getElementById('view-certificate-btn');
+    let certificateId = null;
+    
+    if (completeBtn) {
+        completeBtn.addEventListener('click', function() {
+            completeBtn.disabled = true;
+            completeBtn.textContent = 'Processing...';
+            
+            fetch(`{% url 'complete_lesson' lesson_id=lesson.id %}`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update button to show completed
+                    completeBtn.outerHTML = `
+                        <div class="flex items-center text-green-600">
+                            <svg class="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                            </svg>
+                            Completed
+                        </div>
+                    `;
+                    
+                    // Update progress bar (simplified - in real app would recalculate)
+                    // Show certificate modal if course is completed
+                    if (data.course_completed) {
+                        certificateId = data.certificate_id;
+                        modal.classList.remove('hidden');
+                        modal.classList.add('flex');
+                    }
+                    
+                    // Reload page to update progress
+                    setTimeout(() => {
+                        location.reload();
+                    }, 2000);
+                } else {
+                    alert('Error completing lesson: ' + data.error);
+                    completeBtn.disabled = false;
+                    completeBtn.textContent = 'Mark as Complete';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+                completeBtn.disabled = false;
+                completeBtn.textContent = 'Mark as Complete';
+            });
+        });
+    }
+    
+    if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', function() {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        });
+    }
+    
+    if (viewCertBtn) {
+        viewCertBtn.addEventListener('click', function() {
+            if (certificateId) {
+                window.open(`{% url 'certificate_view' certificate_id='CERT_ID' %}`.replace('CERT_ID', certificateId), '_blank');
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

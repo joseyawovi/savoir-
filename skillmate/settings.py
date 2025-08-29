@@ -169,9 +169,9 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # Cloudinary settings
 cloudinary.config(
-    cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME', ''),
-    api_key=os.environ.get('CLOUDINARY_API_KEY', ''),
-    api_secret=os.environ.get('CLOUDINARY_API_SECRET', ''),
+    cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME', 'demo'),
+    api_key=os.environ.get('CLOUDINARY_API_KEY', 'demo'),
+    api_secret=os.environ.get('CLOUDINARY_API_SECRET', 'demo'),
     secure=True
 )
 
