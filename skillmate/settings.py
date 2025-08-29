@@ -32,7 +32,11 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-your-default-secret-k
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-
+ALLOWED_HOSTS = [
+    "48fc888e-456b-4667-bb65-2664792d35e8-00-3telhahu8t8s.pike.replit.dev",
+    "localhost",
+    "127.0.0.1",
+]
 # Allow all hosts for Replit development environment
 ALLOWED_HOSTS = ['*']
 
